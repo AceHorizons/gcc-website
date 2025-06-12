@@ -1,0 +1,587 @@
+{
+  `path`: `/Users/aaroncapretta/gcc-complete-website/js/main.js`,
+  `content`: `/**
+ * GCC Genesis Construction Corp - Main JavaScript
+ * Handles navigation, interactions, animations, and core functionality
+ */
+
+(function() {
+    'use strict';
+    
+    // DOM Elements
+    const navigation = document.getElementById('gccNavigation');
+    const mobileToggle = document.getElementById('mobileToggle');
+    const navMenu = document.getElementById('navMenu');
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    // State
+    let isMenuOpen = false;
+    let lastScrollTop = 0;
+    let isScrolling = false;
+    
+    /**
+     * Initialize all functionality when DOM is loaded
+     */
+    function init() {
+        setupNavigation();
+        setupMobileMenu();
+        setupScrollEffects();
+        setupSmoothScrolling();
+        setupFormHandlers();
+        setupBackToTop();
+        setupLazyLoading();
+        setupAnimationTriggers();
+        
+        // Remove loading overlay if present
+        removeLoadingOverlay();
+        
+        console.log('GCC Genesis website initialized successfully');
+    }
+    
+    /**
+     * Navigation functionality
+     */
+    function setupNavigation() {
+        // Update active nav link based on current page
+        updateActiveNavLink();
+        
+        // Add click handlers for navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Handle anchor links
+                const href = this.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    e.preventDefault();
+                    scrollToSection(href.substring(1));
+                }
+                
+                // Close mobile menu if open
+                if (isMenuOpen) {
+                    closeMobileMenu();
+                }
+                
+                // Update active state
+                updateActiveNavLink(this);
+            });
+        });
+    }
+    
+    /**
+     * Mobile menu functionality
+     */
+    function setupMobileMenu() {
+        if (!mobileToggle || !navMenu) return;
+        
+        mobileToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleMobileMenu();
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (isMenuOpen && !navigation.contains(e.target)) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Close menu on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isMenuOpen) {
+                closeMobileMenu();
+            }
+        });
+    }
+    
+    /**
+     * Toggle mobile menu
+     */
+    function toggleMobileMenu() {
+        if (isMenuOpen) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    }
+    
+    /**
+     * Open mobile menu
+     */
+    function openMobileMenu() {
+        isMenuOpen = true;
+        navMenu.classList.add('active');
+        mobileToggle.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Animate hamburger lines
+        const spans = mobileToggle.querySelectorAll('span');
+        if (spans.length >= 3) {
+            spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
+            spans[1].style.opacity = '0';
+            spans[2].style.transform = 'rotate(-45deg) translate(7px, -6px)';
+        }
+    }
+    
+    /**
+     * Close mobile menu
+     */
+    function closeMobileMenu() {
+        isMenuOpen = false;
+        navMenu.classList.remove('active');
+        mobileToggle.classList.remove('active');
+        document.body.style.overflow = '';
+        
+        // Reset hamburger lines
+        const spans = mobileToggle.querySelectorAll('span');
+        if (spans.length >= 3) {
+            spans[0].style.transform = '';
+            spans[1].style.opacity = '';
+            spans[2].style.transform = '';
+        }
+    }
+    
+    /**
+     * Scroll effects for navigation
+     */
+    function setupScrollEffects() {
+        let ticking = false;
+        
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(function() {
+                    handleScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+    }
+    
+    /**
+     * Handle scroll events
+     */
+    function handleScroll() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Navigation background effect
+        if (navigation) {
+            if (scrollTop > 100) {
+                navigation.classList.add('scrolled');
+            } else {
+                navigation.classList.remove('scrolled');
+            }
+        }
+        
+        // Update active nav link based on scroll position
+        updateActiveNavLinkOnScroll();
+        
+        // Show/hide back to top button
+        updateBackToTopButton(scrollTop);
+        
+        lastScrollTop = scrollTop;
+    }
+    
+    /**
+     * Update active navigation link
+     */
+    function updateActiveNavLink(activeLink = null) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        
+        if (activeLink) {
+            activeLink.classList.add('active');
+        } else {
+            // Set active based on current page
+            const currentPage = window.location.pathname;
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPage || (currentPage === '/' && href === '/')) {
+                    link.classList.add('active');
+                }
+            });
+        }
+    }
+    
+    /**
+     * Update active nav link based on scroll position
+     */
+    function updateActiveNavLinkOnScroll() {
+        const sections = document.querySelectorAll('section[id]');
+        const scrollTop = window.pageYOffset + 100; // Offset for navigation height
+        
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.offsetHeight;
+            const sectionId = section.getAttribute('id');
+            
+            if (scrollTop >= sectionTop && scrollTop < sectionTop + sectionHeight) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${sectionId}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }
+    
+    /**
+     * Smooth scrolling functionality
+     */
+    function setupSmoothScrolling() {
+        // Handle all anchor links
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('a[href^=\"#\"]');
+            if (target && target.getAttribute('href') !== '#') {
+                e.preventDefault();
+                const targetId = target.getAttribute('href').substring(1);
+                scrollToSection(targetId);
+            }
+        });
+    }
+    
+    /**
+     * Scroll to a specific section
+     */
+    function scrollToSection(sectionId) {
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            const offsetTop = targetSection.offsetTop - 80; // Account for fixed navigation
+            
+            window.scrollTo({
+                top: offsetTop,
+                behavior: 'smooth'
+            });
+        }
+    }
+    
+    /**
+     * Back to top functionality
+     */
+    function setupBackToTop() {
+        // Create back to top button if it doesn't exist
+        let backToTopBtn = document.querySelector('.back-to-top');
+        if (!backToTopBtn) {
+            backToTopBtn = createBackToTopButton();
+        }
+        
+        backToTopBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+    
+    /**
+     * Create back to top button
+     */
+    function createBackToTopButton() {
+        const button = document.createElement('button');
+        button.className = 'back-to-top';
+        button.innerHTML = '↑';
+        button.setAttribute('aria-label', 'Back to top');
+        document.body.appendChild(button);
+        return button;
+    }
+    
+    /**
+     * Update back to top button visibility
+     */
+    function updateBackToTopButton(scrollTop) {
+        const backToTopBtn = document.querySelector('.back-to-top');
+        if (backToTopBtn) {
+            if (scrollTop > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        }
+    }
+    
+    /**
+     * Form handling setup
+     */
+    function setupFormHandlers() {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            setupFormValidation(form);
+        });
+    }
+    
+    /**
+     * Setup form validation
+     */
+    function setupFormValidation(form) {
+        const inputs = form.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            // Focus/blur effects
+            input.addEventListener('focus', function() {
+                this.closest('.form-group').classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.closest('.form-group').classList.remove('focused');
+                validateField(this);
+            });
+            
+            // Real-time validation
+            input.addEventListener('input', function() {
+                clearFieldError(this);
+            });
+        });
+    }
+    
+    /**
+     * Validate individual field
+     */
+    function validateField(field) {
+        const formGroup = field.closest('.form-group');
+        const isRequired = field.hasAttribute('required');
+        const value = field.value.trim();
+        
+        // Clear previous states
+        formGroup.classList.remove('error', 'success');
+        
+        if (isRequired && !value) {
+            showFieldError(field, 'This field is required');
+            return false;
+        }
+        
+        // Email validation
+        if (field.type === 'email' && value) {
+            const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+            if (!emailRegex.test(value)) {
+                showFieldError(field, 'Please enter a valid email address');
+                return false;
+            }
+        }
+        
+        // Phone validation
+        if (field.type === 'tel' && value) {
+            const phoneRegex = /^[\\+]?[1-9][\\d]{0,15}$/;
+            if (!phoneRegex.test(value.replace(/\\D/g, ''))) {
+                showFieldError(field, 'Please enter a valid phone number');
+                return false;
+            }
+        }
+        
+        if (value) {
+            formGroup.classList.add('success');
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Show field error
+     */
+    function showFieldError(field, message) {
+        const formGroup = field.closest('.form-group');
+        formGroup.classList.add('error');
+        
+        let errorElement = formGroup.querySelector('.error-message');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            formGroup.appendChild(errorElement);
+        }
+        errorElement.textContent = message;
+    }
+    
+    /**
+     * Clear field error
+     */
+    function clearFieldError(field) {
+        const formGroup = field.closest('.form-group');
+        formGroup.classList.remove('error');
+    }
+    
+    /**
+     * Lazy loading for images
+     */
+    function setupLazyLoading() {
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.classList.remove('lazy');
+                            observer.unobserve(img);
+                        }
+                    }
+                });
+            });
+            
+            const lazyImages = document.querySelectorAll('img[data-src]');
+            lazyImages.forEach(img => imageObserver.observe(img));
+        }
+    }
+    
+    /**
+     * Animation triggers
+     */
+    function setupAnimationTriggers() {
+        // Trigger animations when elements come into view
+        if ('IntersectionObserver' in window) {
+            const animationObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+            
+            const animatableElements = document.querySelectorAll('.animate-on-scroll');
+            animatableElements.forEach(el => animationObserver.observe(el));
+        }
+    }
+    
+    /**
+     * Remove loading overlay
+     */
+    function removeLoadingOverlay() {
+        const loadingOverlay = document.querySelector('.loading-overlay');
+        if (loadingOverlay) {
+            setTimeout(() => {
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.remove();
+                }, 500);
+            }, 500);
+        }
+    }
+    
+    /**
+     * Utility: Show notification
+     */
+    function showNotification(message, type = 'success', duration = 5000) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        const title = document.createElement('div');
+        title.className = 'notification-title';
+        title.textContent = type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Notice';
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = 'notification-message';
+        messageEl.textContent = message;
+        
+        notification.appendChild(title);
+        notification.appendChild(messageEl);
+        document.body.appendChild(notification);
+        
+        // Show notification
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        // Hide notification
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, duration);
+    }
+    
+    /**
+     * Utility: Debounce function
+     */
+    function debounce(func, wait, immediate) {
+        let timeout;
+        return function executedFunction() {
+            const context = this;
+            const args = arguments;
+            const later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            const callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    }
+    
+    /**
+     * Utility: Throttle function
+     */
+    function throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        }
+    }
+    
+    /**
+     * Performance monitoring
+     */
+    function setupPerformanceMonitoring() {
+        // Log page load performance
+        window.addEventListener('load', function() {
+            if ('performance' in window) {
+                const perfData = performance.timing;
+                const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
+                console.log(`Page load time: ${pageLoadTime}ms`);
+                
+                // Log to analytics if available
+                if (typeof gtag === 'function') {
+                    gtag('event', 'timing_complete', {
+                        name: 'load',
+                        value: pageLoadTime
+                    });
+                }
+            }
+        });
+    }
+    
+    /**
+     * Error handling
+     */
+    function setupErrorHandling() {
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error:', e.error);
+            
+            // Log to analytics if available
+            if (typeof gtag === 'function') {
+                gtag('event', 'exception', {
+                    description: e.error ? e.error.toString() : 'Unknown error',
+                    fatal: false
+                });
+            }
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+    }
+    
+    // Expose utility functions globally
+    window.GCC = {
+        showNotification,
+        scrollToSection,
+        debounce,
+        throttle
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+    // Setup performance monitoring and error handling
+    setupPerformanceMonitoring();
+    setupErrorHandling();
+    
+})();`
+}
